@@ -3,6 +3,9 @@ package com.nlrd.socialevents;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.AccessToken;
@@ -22,12 +25,16 @@ public class ConfigurationActivity extends AppCompatActivity {
     private AccessTokenTracker accessTokenTracker;
     private ProfileTracker profileTracker;
 
+    private SeekBar rangeSlider;
+    private TextView rangeLabel;
+
+    private int range;
+
     //Facebook login button
     private FacebookCallback<LoginResult> callback = new FacebookCallback<LoginResult>() {
         @Override
         public void onSuccess(LoginResult loginResult) {
             Profile profile = Profile.getCurrentProfile();
-            nextActivity(profile);
         }
         @Override
         public void onCancel() {        }
@@ -43,6 +50,40 @@ public class ConfigurationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_configuration);
 
 
+
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            range = extras.getInt("range");
+        }
+        else
+            range = 10;
+
+        rangeSlider =(SeekBar) findViewById(R.id.range);
+        rangeLabel = (TextView)findViewById(R.id.rangeLabel);
+        rangeLabel.setText("Distance (km) = "+range);
+
+        rangeSlider.setProgress(range);
+        rangeSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // TODO Auto-generated method stub
+            }
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // TODO Auto-generated method stub
+                TextView rangeLabel = (TextView)findViewById(R.id.rangeLabel);
+                range = progress;
+                rangeLabel.setText("Distance (km) = "+range);
+            }
+        });
+
         callbackManager = CallbackManager.Factory.create();
         accessTokenTracker = new AccessTokenTracker() {
             @Override
@@ -53,7 +94,6 @@ public class ConfigurationActivity extends AppCompatActivity {
         profileTracker = new ProfileTracker() {
             @Override
             protected void onCurrentProfileChanged(Profile oldProfile, Profile newProfile) {
-                nextActivity(newProfile);
             }
         };
         accessTokenTracker.startTracking();
@@ -65,7 +105,6 @@ public class ConfigurationActivity extends AppCompatActivity {
             public void onSuccess(LoginResult loginResult) {
                 AccessToken accessToken = loginResult.getAccessToken();
                 Profile profile = Profile.getCurrentProfile();
-                nextActivity(profile);
                 Toast.makeText(getApplicationContext(), "Logging in...", Toast.LENGTH_SHORT).show();    }
 
             @Override
@@ -85,7 +124,6 @@ public class ConfigurationActivity extends AppCompatActivity {
         super.onResume();
         //Facebook login
         Profile profile = Profile.getCurrentProfile();
-        nextActivity(profile);
     }
 
     @Override
@@ -94,11 +132,23 @@ public class ConfigurationActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+        Intent intent = new Intent();
+        intent.putExtra("range",range);
+        setResult(RESULT_OK, intent);
+        finish();
+    }
+
     protected void onStop() {
         super.onStop();
         //Facebook login
         accessTokenTracker.stopTracking();
         profileTracker.stopTracking();
+
+
+
     }
 
     @Override
@@ -109,13 +159,4 @@ public class ConfigurationActivity extends AppCompatActivity {
 
     }
 
-    private void nextActivity(Profile profile){
-        if(profile != null){
-            Intent main = new Intent(ConfigurationActivity.this, MainActivity.class);
-            main.putExtra("name", profile.getFirstName());
-            main.putExtra("surname", profile.getLastName());
-            main.putExtra("imageUrl", profile.getProfilePictureUri(200,200).toString());
-            startActivity(main);
-        }
-    }
 }

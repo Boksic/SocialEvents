@@ -3,4 +3,7 @@
     <string name="facebook_app_id">1186047631431496</string>
     <string name="fb_login_protocol_scheme">fb1186047631431496</string>
     <string name="title_activity_main2">Main2Activity</string>
+    <string name="rangeLabel">Distance (km)</string>
+    <string name="evenementLabel">Évènement :</string>
+    <string name="facebookLabel">Log in with facebook for more result !</string>
 </resources>
