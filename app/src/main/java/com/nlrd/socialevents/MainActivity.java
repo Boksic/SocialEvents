@@ -2,6 +2,7 @@ package com.nlrd.socialevents;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,6 +20,13 @@ import com.facebook.GraphResponse;
 import com.facebook.HttpMethod;
 import com.facebook.Profile;
 import com.facebook.login.LoginManager;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -31,8 +39,14 @@ import java.util.Iterator;
 import java.util.Set;
 
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, LocationListener
 {
+    private double latitude;
+    private double longitude;
+
+    Float zoom = new Float(10);
+
+    GoogleMap mMap;
 
     CallbackManager callbackManager;
     AccessToken accessToken;
@@ -52,6 +66,10 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+
         events = new JSONArray();
         progress = new ProgressDialog(this);
 
@@ -61,6 +79,34 @@ public class MainActivity extends AppCompatActivity
 
         getEventsFacebook();
 
+    }
+
+    @Override
+    public void onMapReady(GoogleMap map)
+    {
+        GPSTracker gps = new GPSTracker(MainActivity.this);
+
+        mMap = map;
+
+        if (gps.canGetLocation)
+        {
+            latitude = gps.getLatitude();
+            longitude = gps.getLongitude();
+
+            LatLng myLocation = new LatLng(latitude, longitude);
+
+            map.addMarker(new MarkerOptions().position(myLocation).title("My Position"));
+
+            map.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
+            map.moveCamera(CameraUpdateFactory.zoomTo(zoom));
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location)
+    {
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
     }
 
     @Override
@@ -77,7 +123,7 @@ public class MainActivity extends AppCompatActivity
 
 
     public void getEventsFacebook(){
-        if(accessToken != null){
+        if(AccessToken.getCurrentAccessToken() != null){
             progress.setTitle("Loading");
             progress.setMessage("Wait while loading...");
             progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
@@ -85,7 +131,7 @@ public class MainActivity extends AppCompatActivity
             // To dismiss the dialog
 
             GraphRequest request = GraphRequest.newGraphPathRequest(
-                    accessToken,
+                    AccessToken.getCurrentAccessToken(),
                     "/search",
                     new GraphRequest.Callback() {
                         @Override
@@ -97,6 +143,24 @@ public class MainActivity extends AppCompatActivity
                                 events = (JSONArray) listResponse.get("data");
                                 int nb = events.length();
                                 nameView.setText("" + nb);
+
+                                for (int i=0; i < events.length(); i++)
+                                {
+                                    try {
+                                        JSONObject event = events.getJSONObject(i);
+
+                                        String lat = event.getJSONObject("place").getJSONObject("location").get("latitude").toString();
+                                        String lon = event.getJSONObject("place").getJSONObject("location").get("longitude").toString();
+
+                                        String description = event.get("description").toString();
+
+                                        LatLng location = new LatLng(Float.parseFloat(lat), Float.parseFloat(lon));
+
+                                        mMap.addMarker(new MarkerOptions().position(location).title(description));
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
 
                             } catch (JSONException e) {
                                 e.printStackTrace();
