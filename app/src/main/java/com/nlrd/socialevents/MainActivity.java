@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        events = new JSONArray();
         progress = new ProgressDialog(this);
 
         callbackManager = CallbackManager.Factory.create();
@@ -59,7 +60,6 @@ public class MainActivity extends AppCompatActivity
         profile = Profile.getCurrentProfile();
 
         getEventsFacebook();
-        getEventById("625619650869793");
 
     }
 
@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity
             Bundle parameters = new Bundle();
             parameters.putString("q", "\"AfterWork\"");
             parameters.putString("type", "event");
-            parameters.putString("center", "37.76,-122.427");
+            parameters.putString("center", "48.8599825,2.4066411999999673");
             parameters.putString("distance", (range*10) + "");
             parameters.putString("limit", "500");
             request.setParameters(parameters);
@@ -117,7 +117,10 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void getEventById(final String id){
-
+        progress.setTitle("Loading");
+        progress.setMessage("Wait while loading...");
+        progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
+        progress.show();
         if(accessToken == null){
             new GraphRequest(
                     accessToken,
@@ -151,6 +154,11 @@ public class MainActivity extends AppCompatActivity
                                         new GraphRequest.Callback() {
                                             public void onCompleted(GraphResponse response) {
                                                 events.put(response.getJSONObject());
+                                                TextView nameView = (TextView)findViewById(R.id.nbEvenements);
+                                                int nb = events.length();
+                                                nameView.setText("" + nb);
+                                                progress.dismiss();
+
                                             }
                                         }
                                 ).executeAsync();
@@ -173,6 +181,10 @@ public class MainActivity extends AppCompatActivity
                     new GraphRequest.Callback() {
                         public void onCompleted(GraphResponse response) {
                             events.put(response.getJSONObject());
+                            TextView nameView = (TextView)findViewById(R.id.nbEvenements);
+                            int nb = events.length();
+                            nameView.setText("" + nb);
+                            progress.dismiss();
                         }
                     }
             ).executeAsync();
