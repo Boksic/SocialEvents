@@ -4,16 +4,9 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.location.Location;
 import android.os.AsyncTask;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.facebook.AccessToken;
 import com.facebook.AccessTokenSource;
@@ -23,7 +16,6 @@ import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
 import com.facebook.HttpMethod;
 import com.facebook.Profile;
-import com.facebook.login.LoginManager;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -38,17 +30,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -56,7 +44,6 @@ import java.util.regex.Pattern;
 
 import twitter4j.Query;
 import twitter4j.QueryResult;
-import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.OAuth2Token;
@@ -288,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new GraphRequest.Callback() {
                         @Override
                         public void onCompleted(GraphResponse response) {
-                            TextView nameView = (TextView)findViewById(R.id.nbEvenements);
+
                             progress.dismiss();
                             JSONObject listResponse = response.getJSONObject();
                             try {
@@ -342,7 +329,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new GraphRequest.Callback() {
                         @Override
                         public void onCompleted(GraphResponse response) {
-                            Log.v("response",response.toString());
 
                             JSONObject json =  response.getJSONObject();
                             try{
@@ -357,7 +343,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         new Date(),
                                         null);
 
-                                Log.v("response accessToken", at);
                                 new GraphRequest(
                                         AppAT,
                                         "/"+id,
