@@ -1,10 +1,13 @@
 package com.nlrd.socialevents;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.location.Location;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,6 +27,10 @@ import com.facebook.GraphResponse;
 import com.facebook.HttpMethod;
 import com.facebook.Profile;
 import com.facebook.login.LoginManager;
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -31,6 +38,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
@@ -44,6 +52,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +61,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,8 +74,7 @@ import twitter4j.auth.OAuth2Token;
 import twitter4j.conf.ConfigurationBuilder;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, LocationListener
-{
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, LocationListener {
     private final String TWIT_CONS_KEY = "UEyaYt84sYqOtAPh9JttjDw2L";
     private final String TWIT_CONS_SEC_KEY = "m6I2jehA4GpUSqbGJdRR4SH7VaH7uisLijCr85BDUKEWobbn5E";
 
@@ -84,10 +94,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     ProgressDialog progress;
 
     int range = 10;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         FacebookSdk.sdkInitialize(getApplicationContext());
 
         super.onCreate(savedInstanceState);
@@ -104,21 +118,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         accessToken = AccessToken.getCurrentAccessToken();
         profile = Profile.getCurrentProfile();
 
-        new SearchOnTwitter().execute("#afterwork facebook");
-        new SearchOnTwitter().execute("#soiree facebook");
+        //new SearchOnTwitter().execute("#afterwork facebook");
+        //new SearchOnTwitter().execute("#soiree facebook");
 
         getEventsFacebook();
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
-    public void onMapReady(GoogleMap map)
-    {
+    public void onMapReady(GoogleMap map) {
         GPSTracker gps = new GPSTracker(MainActivity.this);
 
         mMap = map;
 
-        if (gps.canGetLocation)
-        {
+        if (gps.canGetLocation) {
             latitude = gps.getLatitude();
             longitude = gps.getLongitude();
 
@@ -128,12 +143,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             map.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
             map.moveCamera(CameraUpdateFactory.zoomTo(zoom));
+
+            map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                @Override
+                public void onInfoWindowClick(Marker marker) {
+                    String fullDescription = marker.getTitle();
+
+                    String[] desc = fullDescription.split("##");
+
+                    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+
+                    alertDialogBuilder.setTitle(desc[0]);
+
+                    String date = desc[2];
+
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                    formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    Date value = null;
+                    try {
+                        value = formatter.parse(date);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+
+                    SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy hh:mm");
+                    dateFormatter.setTimeZone(TimeZone.getDefault());
+                    String dt = dateFormatter.format(value);
+
+                    alertDialogBuilder.setMessage("\n" + desc[1] + "\n\n"
+                        + dt + "\n\n" + desc[3]
+                    );
+
+                    AlertDialog alertDialog = alertDialogBuilder.create();
+
+                    alertDialog.show();
+                }
+            });
         }
     }
 
     @Override
-    public void onLocationChanged(Location location)
-    {
+    public void onLocationChanged(Location location) {
         latitude = location.getLatitude();
         longitude = location.getLongitude();
     }
@@ -144,6 +194,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getEventsFacebook();
 
         events = new JSONArray();
+    }
+
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Main Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        AppIndex.AppIndexApi.start(client, getIndexApiAction());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(client, getIndexApiAction());
+        client.disconnect();
     }
 
     class SearchOnTwitter extends AsyncTask<String, Void, Integer> {
@@ -191,12 +277,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     String a = "";
                     for (twitter4j.Status tweet : tweets) {
                         str.append("@" + tweet.getUser().getScreenName() + " - " + tweet.getText() + "\n");
-                        str.append( tweet.getText() + "\n");
+                        str.append(tweet.getText() + "\n");
 
                         ArrayList url = getLinks(tweet.getText().toString());
 
-                        if (url.size() != 0)
-                        {
+                        if (url.size() != 0) {
                             a = url.get(0).toString();
 
                             try {
@@ -211,9 +296,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 String facebook = "facebook";
                                 String eventString = "events";
 
-                                if(titre.indexOf(facebook)>0 && titre.indexOf(eventString)>0)
-                                {
-                                    String [] groupeFacebook = titre.split("/");
+                                if (titre.indexOf(facebook) > 0 && titre.indexOf(eventString) > 0) {
+                                    String[] groupeFacebook = titre.split("/");
 
                                     getEventById(groupeFacebook[4]);
                                 }
@@ -243,7 +327,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             String regex = "\\(?\\b(https://|[.])[-A-Za-z0-9+&@#/%?=~_()|!:,.;]*[-A-Za-z0-9+&@#/%=~_()|]";
             Pattern p = Pattern.compile(regex);
             Matcher m = p.matcher(text);
-            while(m.find()) {
+            while (m.find()) {
                 String urlStr = m.group();
                 if (urlStr.startsWith("(") && urlStr.endsWith(")")) {
                     urlStr = urlStr.substring(1, urlStr.length() - 1);
@@ -252,7 +336,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             return links;
         }
-
 
 
         @Override
@@ -269,13 +352,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void goToConfiguration(View view) {
         Intent intent = new Intent(this, ConfigurationActivity.class);
-        intent.putExtra("range",range);
+        intent.putExtra("range", range);
         startActivityForResult(intent, 1);
     }
 
 
-    public void getEventsFacebook(){
-        if(AccessToken.getCurrentAccessToken() != null){
+    public void getEventsFacebook() {
+        if (AccessToken.getCurrentAccessToken() != null) {
             progress.setTitle("Loading");
             progress.setMessage("Wait while loading...");
             progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
@@ -288,14 +371,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new GraphRequest.Callback() {
                         @Override
                         public void onCompleted(GraphResponse response) {
-                            TextView nameView = (TextView)findViewById(R.id.nbEvenements);
+                            TextView nameView = (TextView) findViewById(R.id.nbEvenements);
                             progress.dismiss();
                             JSONObject listResponse = response.getJSONObject();
                             try {
                                 JSONArray eventResponse = (JSONArray) listResponse.get("data");
 
-                                for (int i=0; i < eventResponse.length(); i++)
-                                {
+                                for (int i = 0; i < eventResponse.length(); i++) {
                                     try {
                                         JSONObject event = eventResponse.getJSONObject(i);
 
@@ -304,11 +386,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         String lat = event.getJSONObject("place").getJSONObject("location").get("latitude").toString();
                                         String lon = event.getJSONObject("place").getJSONObject("location").get("longitude").toString();
 
+                                        String name = event.get("name").toString();
                                         String description = event.get("description").toString();
+                                        String startTime = event.get("start_time").toString();
+                                        String address = event.getJSONObject("place").getJSONObject("location").get("street").toString() + ", "
+                                                + event.getJSONObject("place").getJSONObject("location").get("zip").toString() + " "
+                                                + event.getJSONObject("place").getJSONObject("location").get("city").toString() + " "
+                                                + event.getJSONObject("place").getJSONObject("location").get("country").toString();
+
+                                        String fullDescription = name + "##" + description + "##" + startTime + "##" + address;
 
                                         LatLng location = new LatLng(Float.parseFloat(lat), Float.parseFloat(lon));
 
-                                        mMap.addMarker(new MarkerOptions().position(location).title(description).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                                        mMap.addMarker(new MarkerOptions().position(location).title(fullDescription).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
@@ -324,7 +414,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             parameters.putString("q", "\"AfterWork\"");
             parameters.putString("type", "event");
             parameters.putString("center", latitude + "," + longitude);
-            parameters.putString("distance", (range*10) + "");
+            parameters.putString("distance", (range * 10) + "");
             parameters.putString("limit", "500");
             request.setParameters(parameters);
             request.executeAsync();
@@ -332,8 +422,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public void getEventById(final String id){
-        if(accessToken == null){
+    public void getEventById(final String id) {
+        if (accessToken == null) {
             new GraphRequest(
                     accessToken,
                     "oauth/access_token?client_id=1186047631431496&client_secret=6dc0f55ed3e8220a20fda56f4ac3e26f&grant_type=client_credentials",
@@ -342,10 +432,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     new GraphRequest.Callback() {
                         @Override
                         public void onCompleted(GraphResponse response) {
-                            Log.v("response",response.toString());
+                            Log.v("response", response.toString());
 
-                            JSONObject json =  response.getJSONObject();
-                            try{
+                            JSONObject json = response.getJSONObject();
+                            try {
                                 String at = (String) json.get("access_token");
                                 Set<String> s = Collections.emptySet();
                                 AccessToken AppAT = new AccessToken(at,
@@ -360,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 Log.v("response accessToken", at);
                                 new GraphRequest(
                                         AppAT,
-                                        "/"+id,
+                                        "/" + id,
                                         null,
                                         HttpMethod.GET,
                                         new GraphRequest.Callback() {
@@ -372,11 +462,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                                     String lat = event.getJSONObject("place").getJSONObject("location").get("latitude").toString();
                                                     String lon = event.getJSONObject("place").getJSONObject("location").get("longitude").toString();
 
+                                                    String name = event.get("name").toString();
                                                     String description = event.get("description").toString();
+                                                    String startTime = event.get("start_time").toString();
+                                                    String address = event.getJSONObject("place").getJSONObject("location").get("street").toString() + ", "
+                                                            + event.getJSONObject("place").getJSONObject("location").get("zip").toString() + " "
+                                                            + event.getJSONObject("place").getJSONObject("location").get("city").toString() + " "
+                                                            + event.getJSONObject("place").getJSONObject("location").get("country").toString();
+
+                                                    String fullDescription = name + "##" + description + "##" + startTime + "##" + address;
 
                                                     LatLng location = new LatLng(Float.parseFloat(lat), Float.parseFloat(lon));
 
-                                                    mMap.addMarker(new MarkerOptions().position(location).title(description));
+                                                    mMap.addMarker(new MarkerOptions().position(location).title(fullDescription));
 
                                                 } catch (JSONException e) {
                                                     e.printStackTrace();
@@ -395,11 +493,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     }
             ).executeAsync();
-        }
-        else{
+        } else {
             new GraphRequest(
                     accessToken,
-                    "/"+id,
+                    "/" + id,
                     null,
                     HttpMethod.GET,
                     new GraphRequest.Callback() {
@@ -410,11 +507,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 String lat = event.getJSONObject("place").getJSONObject("location").get("latitude").toString();
                                 String lon = event.getJSONObject("place").getJSONObject("location").get("longitude").toString();
 
+                                String name = event.get("name").toString();
                                 String description = event.get("description").toString();
+                                String startTime = event.get("start_time").toString();
+                                String address = event.getJSONObject("place").getJSONObject("location").get("street").toString() + ", "
+                                        + event.getJSONObject("place").getJSONObject("location").get("zip").toString() + " "
+                                        + event.getJSONObject("place").getJSONObject("location").get("city").toString() + " "
+                                        + event.getJSONObject("place").getJSONObject("location").get("country").toString();
+
+                                String fullDescription = name + "##" + description + "##" + startTime + "##" + address;
 
                                 LatLng location = new LatLng(Float.parseFloat(lat), Float.parseFloat(lon));
 
-                                mMap.addMarker(new MarkerOptions().position(location).title(description));
+                                mMap.addMarker(new MarkerOptions().position(location).title(fullDescription));
 
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -431,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1) {
-            if(resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
                 range = (int) data.getIntExtra("range", 10);
                 events = new JSONArray();
 
