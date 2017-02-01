@@ -10,4 +10,5 @@
     <string name="rangeLabel">Distance (km)</string>
     <string name="evenementLabel">Évènement :</string>
     <string name="facebookLabel">Log in with facebook for more result !</string>
+    <string name="searching">searching tweets</string>
 </resources>
